@@ -1,0 +1,25 @@
+{
+  "name": "0_reffrence_file",
+  "version": "1.0.0",
+  "description": "- Daily Programming Reffrence",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "pull": "git fetch --prune && git pull reff master",
+    "push": "git add . && echo \"\n===== GIT Commit ====\n\" && git commit -m \"${npm_config_co}\" && echo \"\n===== GIT Push reff master ====\n\" && git push reff master",
+    "//": "npm run push --co='add your comments"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "csv-parser": "^3.0.0",
+    "dotenv": "^16.4.5",
+    "fast-csv": "^5.0.1",
+    "lodash": "^4.17.21",
+    "pg": "^8.11.3",
+    "pg-query-stream": "^4.5.3",
+    "uuid": "^10.0.0",
+    "winston": "^3.11.0"
+  },
+  "keywords": []
+}
