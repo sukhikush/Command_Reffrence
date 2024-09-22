@@ -1,0 +1,121 @@
+steps:
+
+  - name: gcr.io/cloud-builders/gcloud
+    entrypoint: 'bash'
+    args:
+      [
+        '-c',
+        "gcloud secrets versions access latest --secret=domain-insightlab-biz --format='get(payload.data)' | tr '_-' '/+' | base64 -d > decrypted-data.txt",
+      ]
+
+  - name: 'bash'
+    script: |
+      #!/usr/bin/env bash
+      echo "decrypted-data.txt"
+      cat decrypted-data.txt
+
+  #Writing Report to GCP Buckets
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    args:
+      [
+        'gsutil',
+        '-h',
+        'Cache-Control: no-store',
+        'cp',
+        '-r',
+        'gs://domain-acess-files/*.json',
+        './domain-json-files_buckets'
+      ]
+
+  #List files
+  - name: 'bash'
+    script: |
+      #!/usr/bin/env bash
+      cd domain-json-files_buckets
+      ls -la
+
+  - name: 'bash'
+    script: |
+      #!/usr/bin/env bash
+      echo "$INSIGHTLAB_BIZ" > "domain-json-files/insightlab-biz.json"
+    env:
+      - 'INSIGHTLAB_BIZ=$_DOMAIN_INSIGHTLAB_BIZ'
+
+  # Build the container image
+  - name: 'gcr.io/kaniko-project/executor:latest'
+    args:
+      - --destination=gcr.io/$PROJECT_ID/$_SERVICE_NAME:$_ENVIRONMENT
+      - --cache=true
+
+  #Deploy container image to cloud run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args: [
+        'beta',
+        'run',
+        'deploy',
+        '$_SERVICE_NAME-$_ENVIRONMENT',
+        '--image',
+        'gcr.io/$PROJECT_ID/$_SERVICE_NAME:$_ENVIRONMENT',
+        '--set-env-vars=NODE_ENV=$_ENVIRONMENT',
+        '--set-env-vars=PROJECT_ID=$PROJECT_ID',
+        '--set-env-vars=CAMPAIGN_EXECUTION_DB_USERNAME=$_CAMPAIGN_EXECUTION_DB_USERNAME',
+        '--set-env-vars=CAMPAIGN_EXECUTION_DB_NAME=$_CAMPAIGN_EXECUTION_DB_NAME',
+        '--set-env-vars=CAMPAIGN_EXECUTION_DB_INSTANCE_URL=$_CAMPAIGN_EXECUTION_DB_INSTANCE_URL',
+        '--set-env-vars=CAMPAIGN_EXECUTION_DB_PORT=$_CAMPAIGN_EXECUTION_DB_PORT',
+        '--set-env-vars=CAMPAIGN_EXECUTION_DB_SOCKET_PATH=$_CAMPAIGN_EXECUTION_DB_SOCKET_PATH',
+        '--set-env-vars=AUTH0_DOMAIN=$_AUTH0_DOMAIN',
+        '--set-env-vars=AUTH0_CLIENT_ID=$_AUTH0_CLIENT_ID',
+        '--set-env-vars=AUTH0_CONNECTION=$_AUTH0_CONNECTION',
+        '--set-env-vars=AUTH0_AUTHORIZE_URI=$_AUTH0_AUTHORIZE_URI',
+        '--set-env-vars=GRAPH_TENANT_ID=$_GRAPH_TENANT_ID',
+        '--set-env-vars=GRAPH_CLIENT_ID=$_GRAPH_CLIENT_ID',
+        '--set-env-vars=GRAPH_SENDER_EMAIL=$_GRAPH_SENDER_EMAIL',
+        '--set-env-vars=BD_TEAM_EMAIL=$_BD_TEAM_EMAIL',
+        '--set-env-vars=TYPEFORM_BASE_URL=$_TYPEFORM_BASE_URL',
+        '--set-env-vars=FRONTEND_BASE_URL=$_FRONTEND_BASE_URL',
+        '--set-env-vars=DOWNLOAD_SERVICE_BASE_URL=$_DOWNLOAD_SERVICE_BASE_URL',
+        '--set-env-vars=FILE_IMPORT_BUCKET_NAME=$_FILE_IMPORT_BUCKET_NAME',
+        '--set-env-vars=FILE_DOWNLOAD_BUCKET_NAME=$_FILE_DOWNLOAD_BUCKET_NAME',
+        '--set-env-vars=FILE_IMPORT_SERVICE_BASE_URL=$_FILE_IMPORT_SERVICE_BASE_URL',
+        '--set-env-vars=GRAPH_AUTHORITY_URL=$_GRAPH_AUTHORITY_URL',
+        '--set-env-vars=TASK_QUEUE_PATH=$_TASK_QUEUE_PATH',
+        '--set-env-vars=SERVICE_ACCOUNT_EMAIL=$_SERVICE_ACCOUNT_EMAIL',
+        '--set-env-vars=ENCRYPTION_SALT_VERSION=$_ENCRYPTION_SALT_VERSION',
+        '--set-env-vars=BOT_USER_ID=$_BOT_USER_ID',
+        '--set-env-vars=EVENT_GRAPH_CLIENT_ID=$_EVENT_GRAPH_CLIENT_ID',
+        '--set-env-vars=EVENT_GRAPH_AUTHORITY_URL=$_EVENT_GRAPH_AUTHORITY_URL',
+        # '--set-env-vars=BDR_GROUP=$_BDR_GROUP',
+        '--update-secrets=ENCRYPTION_SALT=$_ENCRYPTION_SALT:$_ENCRYPTION_SALT_VERSION',
+        '--update-secrets=TYPEFORM_PERSONAL_TOKEN=$_TYPEFORM_PERSONAL_TOKEN',
+        '--update-secrets=GRAPH_CLIENT_SECRET=$_GRAPH_CLIENT_SECRET',
+        '--update-secrets=AUTH0_CLIENT_SECRET=$_AUTH0_CLIENT_SECRET',
+        '--update-secrets=CAMPAIGN_EXECUTION_DB_PASSWORD=$_CAMPAIGN_EXECUTION_DB_PASSWORD',
+        '--update-secrets=EVENT_GRAPH_CLIENT_SECRET=$_EVENT_GRAPH_CLIENT_SECRET',
+        '--set-cloudsql-instances',
+        '$_CAMPAIGN_EXECUTION_DB_INSTANCE_URL',
+        '--region',
+        '$_REGION',
+        '--ingress',
+        'all',
+        '--min-instances',
+        '1',
+        '--max-instances',
+        '5',
+        '--concurrency',
+        '5',
+        '--timeout',
+        '1m',
+        '--port',
+        '$_PORT',
+        '--platform',
+        'managed',
+      ]
+
+# availableSecrets:
+#   secretManager:
+#     - versionName: projects/da-tf-project-1-1b0f/secrets/domain-insightlab-biz/versions/1
+#       env: 'domain-insightlab-biz-sec'
+
+# ways to add secrets
+# https://cloud.google.com/build/docs/securing-builds/use-secrets
