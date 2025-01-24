@@ -36,6 +36,12 @@ DELETE FROM "Contacts" where "id" in (
                 REVOKE ALL PRIVILEGES ON DATABASE "da-db" FROM "DaPgAdmin";
         --- on table
                 REVOKE ALL PRIVILEGES ON TABLE \"JobErrors\" FROM \"rahul\"
+                        
+---- To Grant ReadOnly Acess
+        GRANT CONNECT ON DATABASE "market-sizing" TO "PowerBiProd";
+        GRANT USAGE ON SCHEMA public TO "PowerBiProd";
+        GRANT SELECT ON ALL TABLES IN SCHEMA public TO "PowerBiProd";
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO "PowerBiProd";
 
 REASSIGN OWNED BY "dev-test" TO "dauser";
 DROP OWNED BY dev-test;
