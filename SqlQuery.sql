@@ -152,3 +152,18 @@ $ psql -d newdb -f dump.sql
 SELECT *
 FROM information_schema.key_column_usage
 WHERE table_name = 'client_user_map'
+
+
+-- Add Row Counts
+
+ALTER TABLE employees ADD COLUMN seq_num BIGINT;
+
+
+WITH numbered_rows AS (
+    SELECT id, ROW_NUMBER() OVER (ORDER BY name) AS seq_num
+    FROM employees
+)
+UPDATE employees
+SET seq_num = nr.seq_num
+FROM numbered_rows nr
+WHERE employees.id = nr.id;
